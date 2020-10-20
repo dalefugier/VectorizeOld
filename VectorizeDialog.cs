@@ -30,7 +30,6 @@ namespace Vectorize
 
     private RhinoDialogTableLayout CreateTableLayout()
     {
-
       var ns_threshold = new NumericUpDownWithUnitParsing
       {
         ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging,
@@ -41,6 +40,7 @@ namespace Vectorize
         Value = (int) (Potrace.Treshold * 100.0),
         Width = 45
       };
+
       var sld_threshold = new Slider { MinValue = 0, MaxValue = 100, TickFrequency = 0, Value = (int)(Potrace.Treshold * 100.0), Width = 220 };
       sld_threshold.TickFrequency = 25;
 
@@ -141,7 +141,6 @@ namespace Vectorize
       table2.Rows.Add(new TableRow(new TableCell(new Label() { Text = "Corner threshold" }), new TableCell(ns_alphamax)));
       layout.Rows.Add(table2);
 
-
       layout.Rows.Add(new TableRow(new TableCell(new LabelSeparator { Text = "Curve optimization" }, true)));
 
       var panel5 = new Panel {MinimumSize = minimum_size, Content = new Label() {Text = "Optimizing"}};
@@ -149,9 +148,6 @@ namespace Vectorize
       table5.Rows.Add(new TableRow(new TableCell(panel5), new TableCell(chk_curveoptimizing)));
       table5.Rows.Add(new TableRow(new TableCell(new Label() { Text = "Tolerance" }), new TableCell(ns_opttolerance)));
       layout.Rows.Add(table5);
-
-   
-
 
       return layout;
     }
