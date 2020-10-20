@@ -25,7 +25,7 @@ Note, the solution uses the [RhinoCommon](https://www.nuget.org/packages/rhinoco
 git clone https://github.com/dalefugier/Vectorize
 ```
 
-2. Open the Vectorize.sln` solution file in Visual Studio.
+2. Open the `Vectorize.sln` solution file in Visual Studio.
 3. Press <kbd>F7</kbd>, or click *Build > Build Solution*  to build the solution.
 
 ## License
