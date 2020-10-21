@@ -117,8 +117,8 @@ namespace Vectorize
           go.ClearCommandOptions();
 
           // IgnoreArea
-          var turdsize_opt = new OptionInteger(Potrace.turdsize, 2, 20);
-          var turdsize_idx = go.AddOptionInteger("IgnoreArea", ref turdsize_opt, "Ignore speckles of up to this size in pixels");
+          var turdsize_opt = new OptionInteger(Potrace.turdsize, 2, 100);
+          var turdsize_idx = go.AddOptionInteger("FilterSize", ref turdsize_opt, "Filter speckles of up to this size in pixels");
 
           // TurnPolicy
           var turnpolicy_idx = go.AddOptionEnumList("TurnPolicy", Potrace.turnpolicy);
@@ -132,8 +132,8 @@ namespace Vectorize
           var opttolerance_idx = go.AddOptionDouble("Tolerance", ref opttolerance_opt, "Optimizing tolerance");
 
           // CornerThreshold
-          var alphamax_opt = new OptionDouble(Potrace.alphamax, 0.0, 45.0);
-          var alphamax_idx = go.AddOptionDouble("CornerThreshold", ref alphamax_opt, "Corner threshold");
+          var alphamax_opt = new OptionDouble(Potrace.alphamax, 0.0, 100.0);
+          var alphamax_idx = go.AddOptionDouble("CornerRounding", ref alphamax_opt, "Corner rounding threshold");
 
           // Threshold
           var threshold_opt = new OptionDouble(Potrace.Treshold, 0.0, 100.0);
