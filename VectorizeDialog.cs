@@ -147,6 +147,8 @@ namespace Vectorize
       var table5 = new TableLayout { Padding = new Eto.Drawing.Padding(8, 0, 0, 0), Spacing = new Size(10, 8) };
       table5.Rows.Add(new TableRow(new TableCell(panel5), new TableCell(chk_curveoptimizing)));
       table5.Rows.Add(new TableRow(new TableCell(new Label() { Text = "Tolerance" }), new TableCell(ns_opttolerance)));
+      table5.Rows.Add(null);
+      table5.Rows.Add(new TableRow(new TableCell(new Label() { Text = "" }), new TableCell(btn_reset)));
       layout.Rows.Add(table5);
 
       return layout;
@@ -157,8 +159,8 @@ namespace Vectorize
       if (m_allow_update_and_redraw && null != m_doc && null != m_bitmap && null != m_conduit)
       {
         Potrace.Clear();
-        m_conduit.ListOfPathes.Clear();
-        Potrace.Potrace_Trace(m_bitmap, m_conduit.ListOfPathes);
+        m_conduit.Clear();
+        Potrace.Potrace_Trace(m_bitmap, m_conduit.CurvePaths);
         m_doc.Views.Redraw();
       }
     }

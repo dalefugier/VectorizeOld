@@ -21,7 +21,7 @@ namespace Vectorize
     Line,
     Bezier
   }
-  
+
   /// <summary>
   /// Holds the coordinates of a Point
   /// </summary>
@@ -85,6 +85,7 @@ namespace Vectorize
     /// Endpoint
     /// </summary>
     public dPoint B;
+
     /// <summary>
     /// Creates a curve
     /// </summary>
@@ -103,41 +104,26 @@ namespace Vectorize
     }
 
     // 20-Oct-2020 Dale Fugier
-    public Rhino.Geometry.BoundingBox BoundingBox()
+    public Rhino.Geometry.LineCurve ToLineCurve()
     {
-      var bbox = new Rhino.Geometry.BoundingBox();
-      if (Kind == CurveKind.Line)
-      {
-        bbox.Union(A.ToPoint3d());
-        bbox.Union(B.ToPoint3d());
-      }
-      else
-      {
-        bbox.Union(A.ToPoint3d());
-        bbox.Union(ControlPointA.ToPoint3d());
-        bbox.Union(ControlPointB.ToPoint3d());
-        bbox.Union(B.ToPoint3d());
-      }
-      return bbox;
-    }
-
-    // 20-Oct-2020 Dale Fugier
-    public Rhino.Geometry.Curve ToCurve()
-    {
-      Rhino.Geometry.Curve curve;
       if (Kind == CurveKind.Line)
       {
         var line = new Rhino.Geometry.Line(A.ToPoint3d(), B.ToPoint3d());
-        curve = line.IsValid ? new Rhino.Geometry.LineCurve(line) : null;
+        return new Rhino.Geometry.LineCurve(line);
       }
-      else
-      {
-        var list = new Rhino.Geometry.Point3d[] { A.ToPoint3d(), ControlPointA.ToPoint3d(), ControlPointB.ToPoint3d(), B.ToPoint3d() };
-        var bez = new Rhino.Geometry.BezierCurve(list);
-        curve = bez.IsValid ? bez.ToNurbsCurve() : null;
+      return null;
+    }
 
+    // 20-Oct-2020 Dale Fugier
+    public Rhino.Geometry.NurbsCurve ToNurbsCurve()
+    {
+      if (Kind == CurveKind.Bezier)
+      {
+        var points = new Rhino.Geometry.Point3d[] { A.ToPoint3d(), ControlPointA.ToPoint3d(), ControlPointB.ToPoint3d(), B.ToPoint3d() };
+        var bezier = new Rhino.Geometry.BezierCurve(points);
+        return bezier.ToNurbsCurve();
       }
-      return curve;
+      return null;
     }
 
   }
@@ -215,15 +201,15 @@ namespace Vectorize
         this.h = h;
         data = new byte[size];
       }
-      
+
       public int w = 0;
       public int h = 0;
-      
+
       public int size
       {
         get { return w * h; }
       }
-      
+
       public bool at(int x, int y)
       {
         return ((x >= 0) && (x < this.w) && (y >= 0) && (y < this.h) && (this.data[this.w * y + x] == 1));
@@ -236,7 +222,7 @@ namespace Vectorize
         int y = i / w;
         return new Point(i - y * w, y);
       }
-      
+
       public void flip(int x, int y)
       {
         if (this.at(x, y))
@@ -248,7 +234,7 @@ namespace Vectorize
           this.data[this.w * y + x] = 1;
         }
       }
-      
+
       public Bitmap_p copy()
       {
         Bitmap_p Result = new Bitmap_p(w, h);
@@ -309,7 +295,7 @@ namespace Vectorize
         c = new dPoint[n * 3];
       }
     }
-    
+
     #endregion
 
     #region auxiliary functions
@@ -363,7 +349,7 @@ namespace Vectorize
       y2 = p3.y - p2.y;
       return x1 * y2 - x2 * y1;
     }
-    
+
     /* calculate (p1-p0)*(p2-p0) */
     static double iprod(dPoint p0, dPoint p1, dPoint p2)
     {

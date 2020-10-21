@@ -18,52 +18,10 @@ namespace Vectorize
 
     protected override Result RunCommand(RhinoDoc doc, RunMode mode)
     {
-      string path;
-      if (mode == RunMode.Interactive)
-      {
-        var dialog = new Eto.Forms.OpenFileDialog();
-
-        string[] all = { ".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff" };
-        dialog.Filters.Add(new Eto.Forms.FileFilter("All image files", all));
-
-        dialog.Filters.Add(new Eto.Forms.FileFilter("Bitmap", ".bmp"));
-        dialog.Filters.Add(new Eto.Forms.FileFilter("GIF", ".gif"));
-
-        string[] jpeg = { ".jpg", ".jpe", ".jpeg" };
-        dialog.Filters.Add(new Eto.Forms.FileFilter("JPEG", jpeg));
-        dialog.Filters.Add(new Eto.Forms.FileFilter("PNG", ".png"));
-
-        string[] tiff = { ".tif", ".tiff" };
-        dialog.Filters.Add(new Eto.Forms.FileFilter("TIFF", tiff));
-
-        var res = dialog.ShowDialog(RhinoEtoApp.MainWindow);
-        if (res != Eto.Forms.DialogResult.Ok)
-          return Result.Cancel;
-
-        path = dialog.FileName;
-      }
-      else
-      {
-        var gs = new GetString();
-        gs.SetCommandPrompt("Name of image file to open");
-        gs.Get();
-        if (gs.CommandResult() != Result.Success)
-          return Result.Cancel;
-
-        path = gs.StringResult();
-      }
-
-      if (!string.IsNullOrEmpty(path))
-        path = path.Trim();
-
+      // Prompt the user for the name of the image file to vectorize.
+      string path = GetImageFileName(mode);
       if (string.IsNullOrEmpty(path))
-        return Result.Failure;
-
-      if (!File.Exists(path))
-      {
-        RhinoApp.WriteLine("The specified file cannot be found.");
-        return Result.Failure;
-      }
+        return Result.Cancel;
 
       var source_bitmap = Image.FromFile(path) as Bitmap;
       if (null == source_bitmap)
@@ -77,7 +35,6 @@ namespace Vectorize
         return Result.Failure;
 
       bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
-
       if (0 == bitmap.Width || 0 == bitmap.Height)
       {
         RhinoApp.WriteLine("Error reading the specified file.");
@@ -124,8 +81,8 @@ namespace Vectorize
         while (true)
         {
           Potrace.Clear();
-          conduit.ListOfPathes.Clear();
-          Potrace.Potrace_Trace(bitmap, conduit.ListOfPathes);
+          conduit.Clear();
+          Potrace.Potrace_Trace(bitmap, conduit.CurvePaths);
           doc.Views.Redraw();
 
           go.ClearCommandOptions();
@@ -203,22 +160,68 @@ namespace Vectorize
 
       conduit.Enabled = false;
 
-      for (var i = 0; i < conduit.ListOfPathes.Count; i++)
-      {
-        var list = conduit.ListOfPathes[i];
-        for (var j = 0; j < list.Count; j++)
-        {
-          var curve = list[j].ToCurve();
-          if (null != curve)
-            doc.Objects.AddCurve(curve);
-        }
-      }
-
+      for (var i = 0; i < conduit.OutlineCurves.Count; i++)
+        doc.Objects.AddCurve(conduit.OutlineCurves[i]);
       doc.Views.Redraw();
 
       SetSettings();
 
       return Result.Success;
+    }
+
+    /// <summary>
+    /// Get name of an image file.
+    /// </summary>
+    protected string GetImageFileName(RunMode mode)
+    {
+      string path;
+      if (mode == RunMode.Interactive)
+      {
+        var dialog = new Eto.Forms.OpenFileDialog();
+
+        string[] all = { ".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff" };
+        dialog.Filters.Add(new Eto.Forms.FileFilter("All image files", all));
+
+        dialog.Filters.Add(new Eto.Forms.FileFilter("Bitmap", ".bmp"));
+        dialog.Filters.Add(new Eto.Forms.FileFilter("GIF", ".gif"));
+
+        string[] jpeg = { ".jpg", ".jpe", ".jpeg" };
+        dialog.Filters.Add(new Eto.Forms.FileFilter("JPEG", jpeg));
+        dialog.Filters.Add(new Eto.Forms.FileFilter("PNG", ".png"));
+
+        string[] tiff = { ".tif", ".tiff" };
+        dialog.Filters.Add(new Eto.Forms.FileFilter("TIFF", tiff));
+
+        var res = dialog.ShowDialog(RhinoEtoApp.MainWindow);
+        if (res != Eto.Forms.DialogResult.Ok)
+          return null;
+
+        path = dialog.FileName;
+      }
+      else
+      {
+        var gs = new GetString();
+        gs.SetCommandPrompt("Name of image file to open");
+        gs.Get();
+        if (gs.CommandResult() != Result.Success)
+          return null;
+
+        path = gs.StringResult();
+      }
+
+      if (!string.IsNullOrEmpty(path))
+        path = path.Trim();
+
+      if (string.IsNullOrEmpty(path))
+        return null;
+
+      if (!File.Exists(path))
+      {
+        RhinoApp.WriteLine("The specified file cannot be found.");
+        return null;
+      }
+
+      return path;
     }
 
     /// <summary>
