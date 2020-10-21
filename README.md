@@ -1,5 +1,5 @@
 # Vectorize
-Vectorize is an free, open source image tracing plug-in for Rhino.
+Vectorize is a free, open source image tracing plug-in for Rhino.
 
 ### Overview
 
