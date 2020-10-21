@@ -10,28 +10,25 @@ namespace Vectorize
   /// </summary>
   public class VectorizeConduit : DisplayConduit
   {
-    private Color m_color;
+    private readonly List<List<Vectorize.Curve>> m_path_curves;
+    private readonly Bitmap m_bitmap;
+    private readonly double m_scale;
+    private readonly double m_tolerance;
+    private readonly Color m_color;
     private BoundingBox m_bbox;
 
     /// <summary>
-    /// Public constructor
+    /// Public constructor.
     /// </summary>
-    /// <param name="color">The color to use when drawing preview curves.</param>
-    public VectorizeConduit(Color color)
+    public VectorizeConduit(Bitmap bitmap, double scale, double tolerance, Color color)
     {
+      m_path_curves = new List<List<Vectorize.Curve>>();
+      m_bitmap = bitmap;
+      m_scale = scale;
+      m_tolerance = tolerance;
       m_color = color;
       m_bbox = BoundingBox.Unset;
-      CurvePaths = new List<List<Vectorize.Curve>>();
       OutlineCurves = new List<PolyCurve>();
-    }
-
-    /// <summary>
-    /// The list of path curves, as computed by Potrace
-    /// </summary>
-    public List<List<Vectorize.Curve>> CurvePaths
-    {
-      get;
-      private set;
     }
 
     /// <summary>
@@ -45,17 +42,7 @@ namespace Vectorize
     }
 
     /// <summary>
-    /// Clears collections and resets the conduit bounding box.
-    /// </summary>
-    public void Clear()
-    {
-      m_bbox = BoundingBox.Unset;
-      CurvePaths.Clear();
-      OutlineCurves.Clear();
-    }
-
-    /// <summary>
-    /// DisplayConduit.CalculateBoundingBox override
+    /// DisplayConduit.CalculateBoundingBox override.
     /// </summary>
     protected override void CalculateBoundingBox(CalculateBoundingBoxEventArgs e)
     {
@@ -66,7 +53,7 @@ namespace Vectorize
     }
 
     /// <summary>
-    /// DisplayConduit.DrawOverlay override
+    /// DisplayConduit.DrawOverlay override.
     /// </summary>
     protected override void DrawOverlay(DrawEventArgs e)
     {
@@ -75,16 +62,36 @@ namespace Vectorize
     }
 
     /// <summary>
+    /// Trace the bitmap using Potrace.
+    /// </summary>
+    public void TraceBitmap()
+    {
+      Clear();
+      Potrace.Clear();
+      Potrace.Potrace_Trace(m_bitmap, m_path_curves);
+    }
+
+    /// <summary>
+    /// Clears collections and resets the conduit bounding box.
+    /// </summary>
+    private void Clear()
+    {
+      m_bbox = BoundingBox.Unset;
+      m_path_curves.Clear();
+      OutlineCurves.Clear();
+    }
+
+    /// <summary>
     /// Creates outline curves from the path curves computed by Potrace.
     /// Also cooks up the conduit bounding box.
     /// </summary>
-    protected int CreateOutlineCurves()
+    private int CreateOutlineCurves()
     {
       OutlineCurves.Clear();
 
-      for (var i = 0; i < CurvePaths.Count; i++)
+      for (var i = 0; i < m_path_curves.Count; i++)
       {
-        var curve_path = CurvePaths[i];
+        var curve_path = m_path_curves[i];
         if (0 == curve_path.Count)
           continue;
 
@@ -114,6 +121,8 @@ namespace Vectorize
           polycurve.Append(new LineCurve(point1, point2));
         }
 
+        polycurve.RemoveShortSegments(m_tolerance);
+
         OutlineCurves.Add(polycurve);
       }
 
@@ -124,7 +133,22 @@ namespace Vectorize
           m_bbox.Union(OutlineCurves[i].GetBoundingBox(true));
       }
 
+      // The origin of the bitmap coordinate system is at the top-left corner of the bitmap. 
+      // So, create a mirror transformation so the output is orienteto Rhino's world xy plane.
+      var mirror = Transform.Mirror(m_bbox.Center, Vector3d.YAxis);
+      for (var i = 0; i < OutlineCurves.Count; i++)
+        OutlineCurves[i].Transform(mirror);
+
+      // Scale the output, per the calculate made in the command.
+      if (m_scale != 1.0)
+      {
+        var scale = Transform.Scale(Point3d.Origin, m_scale);
+        for (var i = 0; i < OutlineCurves.Count; i++)
+          OutlineCurves[i].Transform(scale);
+      }
+
       return OutlineCurves.Count;
     }
+
   }
 }

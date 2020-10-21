@@ -7,17 +7,21 @@ using Rhino.UI.Forms;
 
 namespace Vectorize
 {
+  /// <summary>
+  /// Vectorize command dialog
+  /// </summary>
   public class VectorizeDialog : CommandDialog
   {
     private RhinoDoc m_doc;
-    private System.Drawing.Bitmap m_bitmap;
     private VectorizeConduit m_conduit;
     private bool m_allow_update_and_redraw = true;
 
-    public VectorizeDialog(RhinoDoc doc, System.Drawing.Bitmap bitmap, VectorizeConduit conduit)
+    /// <summary>
+    /// Public constructor
+    /// </summary>
+    public VectorizeDialog(RhinoDoc doc, VectorizeConduit conduit)
     {
       m_doc = doc;
-      m_bitmap = bitmap;
       m_conduit = conduit;
 
       Resizable = false;
@@ -28,6 +32,9 @@ namespace Vectorize
       Shown += (sender, e) => UpdateAndRedraw();
     }
 
+    /// <summary>
+    /// Creates the content of the dialog
+    /// </summary>
     private RhinoDialogTableLayout CreateTableLayout()
     {
       var ns_threshold = new NumericUpDownWithUnitParsing
@@ -156,11 +163,9 @@ namespace Vectorize
 
     private void UpdateAndRedraw()
     {
-      if (m_allow_update_and_redraw && null != m_doc && null != m_bitmap && null != m_conduit)
+      if (m_allow_update_and_redraw && null != m_doc && null != m_conduit)
       {
-        Potrace.Clear();
-        m_conduit.Clear();
-        Potrace.Potrace_Trace(m_bitmap, m_conduit.CurvePaths);
+        m_conduit.TraceBitmap();
         m_doc.Views.Redraw();
       }
     }

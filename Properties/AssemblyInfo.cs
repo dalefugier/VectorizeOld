@@ -13,7 +13,7 @@ using Rhino.PlugIns;
 [assembly: PlugInDescription(DescriptionType.Icon, "Vectorize.Resources.Vectorize.ico")]
 
 [assembly: AssemblyTitle("Vectorize")]
-[assembly: AssemblyDescription("Vectorize plug-in for  Rhinoceros®")]
+[assembly: AssemblyDescription("Vectorize plug-in for Rhinoceros®")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Robert McNeel & Associates")]
 [assembly: AssemblyProduct("Vectorize")]

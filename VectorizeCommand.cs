@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
-using System.Collections.Generic;
 using System.Linq;
 using Rhino;
 using Rhino.Commands;
-using Rhino.Geometry;
 using Rhino.Input;
 using Rhino.Input.Custom;
 using Rhino.UI;
+using System.Globalization;
 
 namespace Vectorize
 {
@@ -23,46 +22,77 @@ namespace Vectorize
       if (string.IsNullOrEmpty(path))
         return Result.Cancel;
 
-      var source_bitmap = Image.FromFile(path) as Bitmap;
-      if (null == source_bitmap)
+      // Creates a bitmap from the specified file.
+      var bitmap = Image.FromFile(path) as Bitmap;
+      if (null == bitmap)
       {
         RhinoApp.WriteLine("The specified file cannot be identifed as a supported type.");
         return Result.Failure;
       }
 
-      Bitmap bitmap = (Bitmap)source_bitmap.Clone();
-      if (null == bitmap)
-        return Result.Failure;
-
-      bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
+      // Verify bitmap size     
       if (0 == bitmap.Width || 0 == bitmap.Height)
       {
         RhinoApp.WriteLine("Error reading the specified file.");
         return Result.Failure;
       }
 
-      // Gets the horizontal and vertical resolution, in pixels per inch
-      var one_to_one_width = RhinoMath.UnsetValue;
-      var one_to_one_height = RhinoMath.UnsetValue;
+      // Calculate scale factor so curves of a reasonable size are added to Rhino
+      var unit_scale = (doc.ModelUnitSystem != UnitSystem.Inches)
+        ? RhinoMath.UnitScale(UnitSystem.Inches, doc.ModelUnitSystem)
+        : 1.0;
+      var scale = Convert.ToDouble(1.0 / bitmap.HorizontalResolution * unit_scale);
 
-      var hres = bitmap.HorizontalResolution;
-      var vres = bitmap.VerticalResolution;
-      var us = RhinoMath.UnitScale(doc.ModelUnitSystem, UnitSystem.Inches);
-      var dx = hres * us;
-      var dy = vres * us;
-      if (dx > 0.0 && dy > 0.0)
+      // I'm not convinced this is useful...
+      if (true)
       {
-        one_to_one_width = bitmap.Width / dx;
-        one_to_one_height = bitmap.Height / dy;
+        var format = $"F{doc.DistanceDisplayPrecision}";
+
+        // Print image size in pixels
+        RhinoApp.WriteLine("Image size in pixels: {0} x {1}",
+          bitmap.Width,
+          bitmap.Height
+          );
+
+        // Print image size in inches
+        var width = (double)(bitmap.Width / bitmap.HorizontalResolution);
+        var height = (double)(bitmap.Height / bitmap.VerticalResolution);
+        RhinoApp.WriteLine("Image size in inches: {0} x {1}",
+          width.ToString(format, CultureInfo.InvariantCulture),
+          height.ToString(format, CultureInfo.InvariantCulture)
+          );
+
+        // Image size in in model units, if needed
+        if (doc.ModelUnitSystem != UnitSystem.Inches)
+        {
+          width = (double)(bitmap.Width / bitmap.HorizontalResolution * unit_scale);
+          height = (double)(bitmap.Height / bitmap.VerticalResolution * unit_scale);
+          RhinoApp.WriteLine("Image size in {0}: {1} x {2}",
+            doc.ModelUnitSystem.ToString().ToLower(),
+            width.ToString(format, CultureInfo.InvariantCulture),
+            height.ToString(format, CultureInfo.InvariantCulture)
+            );
+        }
       }
 
-      GetSettings();
+      // Gets the Potrace settings from the plug-in settings file
+      GetPotraceSettings();
 
-      var conduit = new VectorizeConduit(doc.Layers.CurrentLayer.Color) { Enabled = true };
+      // Create the conduit, which does most of the work
+      var conduit = new VectorizeConduit(
+        bitmap, 
+        scale, 
+        doc.ModelAbsoluteTolerance, 
+        doc.Layers.CurrentLayer.Color
+        ) 
+      { 
+        Enabled = true 
+      };
 
       if (mode == RunMode.Interactive)
       {
-        var dialog = new VectorizeDialog(doc, bitmap, conduit);
+        // Show the interactive dialog box
+        var dialog = new VectorizeDialog(doc, conduit);
         dialog.RestorePosition();
         var result = dialog.ShowSemiModal(doc, RhinoEtoApp.MainWindow);
         dialog.SavePosition();
@@ -75,21 +105,20 @@ namespace Vectorize
       }
       else
       {
+        // Show the command line options
         var go = new GetOption();
         go.SetCommandPrompt("Vectorization options. Press Enter when done");
         go.AcceptNothing(true);
         while (true)
         {
-          Potrace.Clear();
-          conduit.Clear();
-          Potrace.Potrace_Trace(bitmap, conduit.CurvePaths);
+          conduit.TraceBitmap();
           doc.Views.Redraw();
 
           go.ClearCommandOptions();
 
           // IgnoreArea
           var turdsize_opt = new OptionInteger(Potrace.turdsize, 2, 20);
-          var turdsize_idx = go.AddOptionInteger("IgnoreArea", ref turdsize_opt, "Suppress speckles of up to this size in pixels");
+          var turdsize_idx = go.AddOptionInteger("IgnoreArea", ref turdsize_opt, "Ignore speckles of up to this size in pixels");
 
           // TurnPolicy
           var turnpolicy_idx = go.AddOptionEnumList("TurnPolicy", Potrace.turnpolicy);
@@ -100,7 +129,7 @@ namespace Vectorize
 
           // Tolerance
           var opttolerance_opt = new OptionDouble(Potrace.opttolerance, 0.0, 1.0);
-          var opttolerance_idx = go.AddOptionDouble("Tolerance", ref opttolerance_opt, "Corner threshold");
+          var opttolerance_idx = go.AddOptionDouble("Tolerance", ref opttolerance_opt, "Optimizing tolerance");
 
           // CornerThreshold
           var alphamax_opt = new OptionDouble(Potrace.alphamax, 0.0, 45.0);
@@ -158,13 +187,14 @@ namespace Vectorize
         }
       }
 
-      conduit.Enabled = false;
-
       for (var i = 0; i < conduit.OutlineCurves.Count; i++)
         doc.Objects.AddCurve(conduit.OutlineCurves[i]);
+
+      conduit.Enabled = false;
       doc.Views.Redraw();
 
-      SetSettings();
+      // Set the Potrace settings to the plug -in settings file.
+      SetPotraceSettings();
 
       return Result.Success;
     }
@@ -227,7 +257,7 @@ namespace Vectorize
     /// <summary>
     /// Gets the Potrace settings from the plug-in settings file.
     /// </summary>
-    void GetSettings()
+    void GetPotraceSettings()
     {
       Potrace.RestoreDefaults();
       if (Settings.TryGetInteger("turnpolicy", out var turnpolicy))
@@ -247,7 +277,7 @@ namespace Vectorize
     /// <summary>
     /// Sets the Potrace settings to the plug-in settings file.
     /// </summary>
-    void SetSettings()
+    void SetPotraceSettings()
     {
       Settings.SetInteger("turnpolicy", (int) Potrace.turnpolicy);
       Settings.SetInteger("turdsize", Potrace.turdsize);
