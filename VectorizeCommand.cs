@@ -187,8 +187,11 @@ namespace Vectorize
         }
       }
 
+      // 22-Oct-2020 Dale Fugier, group curves
+      var attributes = doc.CreateDefaultAttributes();
+      attributes.AddToGroup(doc.Groups.Add());
       for (var i = 0; i < conduit.OutlineCurves.Count; i++)
-        doc.Objects.AddCurve(conduit.OutlineCurves[i]);
+        doc.Objects.AddCurve(conduit.OutlineCurves[i], attributes);
 
       conduit.Enabled = false;
       doc.Views.Redraw();
