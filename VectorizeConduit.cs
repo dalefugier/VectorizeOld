@@ -53,6 +53,14 @@ namespace Vectorize
     }
 
     /// <summary>
+    /// DisplayConduit.CalculateBoundingBoxZoomExtents override.
+    /// </summary>
+    protected override void CalculateBoundingBoxZoomExtents(CalculateBoundingBoxEventArgs e)
+    {
+      CalculateBoundingBox(e);
+    }
+
+    /// <summary>
     /// DisplayConduit.DrawOverlay override.
     /// </summary>
     protected override void DrawOverlay(DrawEventArgs e)
@@ -134,15 +142,17 @@ namespace Vectorize
       }
 
       // The origin of the bitmap coordinate system is at the top-left corner of the bitmap. 
-      // So, create a mirror transformation so the output is orienteto Rhino's world xy plane.
+      // So, create a mirror transformation so the output is oriented to Rhino's world xy plane.
       var mirror = Transform.Mirror(m_bbox.Center, Vector3d.YAxis);
+      m_bbox.Transform(mirror);
       for (var i = 0; i < OutlineCurves.Count; i++)
         OutlineCurves[i].Transform(mirror);
 
-      // Scale the output, per the calculate made in the command.
+      // Scale the output, per the calculation made in the command.
       if (m_scale != 1.0)
       {
         var scale = Transform.Scale(Point3d.Origin, m_scale);
+        m_bbox.Transform(scale);
         for (var i = 0; i < OutlineCurves.Count; i++)
           OutlineCurves[i].Transform(scale);
       }
