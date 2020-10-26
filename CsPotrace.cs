@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 
-//Copyright (C) 2001-2016 Peter Selinger
-//Copyright (C) 2009-2016 Wolfgang Nagl
+// Copyright (C) 2001-2016 Peter Selinger
+// Copyright (C) 2009-2016 Wolfgang Nagl
 
 // This program is free software; you can redistribute it and/or modify  it under the terms of the GNU General Public License as published by  the Free Software Foundation; either version 2 of the License, or (at  your option) any later version.
 // This program is distributed in the hope that it will be useful, but  WITHOUT ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU  General Public License for more details.
@@ -622,8 +623,32 @@ namespace Vectorize
       }
 
       bitmap.UnlockBits(SourceData);
-      bm = new Bitmap_p(bitmap.Width, bitmap.Height);
-      bm.data = Result;
+      bm = new Bitmap_p(bitmap.Width, bitmap.Height)
+      {
+        data = Result
+      };
+    }
+
+    // 26-Oct-2020 Dale Fugier
+    static void ConvertEtoBitmap(Eto.Drawing.Bitmap bitmap)
+    {
+      var result = new byte[bitmap.Width * bitmap.Height];
+      using (var bitmapData = bitmap.Lock())
+      {
+        var argbData = bitmapData.GetPixels().ToArray();
+        for (var i = 0; i < argbData.Length; i++)
+        {
+          if (argbData[i].Rb + argbData[i].Gb + argbData[i].Bb < Treshold * 255 * 3)
+            result[i] = 1;
+          else
+            result[i] = 0;
+        }
+      }
+
+      bm = new Bitmap_p(bitmap.Width, bitmap.Height)
+      {
+        data = result
+      };
     }
 
     /// <summary>
@@ -1777,6 +1802,26 @@ namespace Vectorize
     public static void Potrace_Trace(Bitmap Bitmap, List<List<Curve>> ListOfCurveArrays)
     {
       ConvertBitmap(Bitmap);
+      bmToPathlist();
+      for (int i = 0; i < pathlist.Count; i++)
+      {
+        calcSums(pathlist[i]);
+        calcLon(pathlist[i]);
+        bestPolygon(pathlist[i]);
+        adjustVertices(pathlist[i]);
+
+        smooth(pathlist[i]);
+        if (curveoptimizing)
+          optiCurve(pathlist[i]);
+
+      }
+      tracetoList(ListOfCurveArrays);
+    }
+
+    // 26-Oct-2020 Dale Fugier
+    public static void Potrace_EtoTrace(Eto.Drawing.Bitmap Bitmap, List<List<Curve>> ListOfCurveArrays)
+    {
+      ConvertEtoBitmap(Bitmap);
       bmToPathlist();
       for (int i = 0; i < pathlist.Count; i++)
       {

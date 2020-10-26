@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Rhino;
@@ -7,16 +9,26 @@ using Rhino.Commands;
 using Rhino.Input;
 using Rhino.Input.Custom;
 using Rhino.UI;
-using System.Globalization;
 
 namespace Vectorize
 {
-  public class VectorizeCommand : Rhino.Commands.Command
+  /// <summary>
+  /// Vectorize command
+  /// </summary>
+  public class VectorizeCommand : Command
   {
+    /// <summary>
+    /// Command.EnglishName override
+    /// </summary>
     public override string EnglishName => "Vectorize";
 
+    /// <summary>
+    /// Command.RunCommand override
+    /// </summary>
     protected override Result RunCommand(RhinoDoc doc, RunMode mode)
     {
+      Potrace.Clear();
+
       // Prompt the user for the name of the image file to vectorize.
       string path = GetImageFileName(mode);
       if (string.IsNullOrEmpty(path))
@@ -41,7 +53,7 @@ namespace Vectorize
       var unit_scale = (doc.ModelUnitSystem != UnitSystem.Inches)
         ? RhinoMath.UnitScale(UnitSystem.Inches, doc.ModelUnitSystem)
         : 1.0;
-      var scale = Convert.ToDouble(1.0 / bitmap.HorizontalResolution * unit_scale);
+      var scale = (double)(1.0 / bitmap.HorizontalResolution * unit_scale);
 
       // I'm not convinced this is useful...
       if (true)
@@ -75,12 +87,23 @@ namespace Vectorize
         }
       }
 
+      // Convert the bitmap to an Eto bitmap
+      var eto_bitmap = ConvertBitmapToEto(bitmap);
+      if (null == eto_bitmap)
+      {
+        RhinoApp.WriteLine("Unable to convert bitmap to Eto bitmap.");
+        return Result.Failure;
+      }
+
+      // This bitmap is not needed anymore, so dispose of it
+      bitmap.Dispose();
+
       // Gets the Potrace settings from the plug-in settings file
       GetPotraceSettings();
 
       // Create the conduit, which does most of the work
       var conduit = new VectorizeConduit(
-        bitmap, 
+        eto_bitmap, 
         scale, 
         doc.ModelAbsoluteTolerance, 
         doc.Layers.CurrentLayer.Color
@@ -99,6 +122,7 @@ namespace Vectorize
         if (result != Result.Success)
         {
           conduit.Enabled = false;
+          Potrace.Clear();
           doc.Views.Redraw();
           return Result.Cancel;
         }
@@ -180,6 +204,7 @@ namespace Vectorize
           {
             conduit.Enabled = false;
             doc.Views.Redraw();
+            Potrace.Clear();
             return Result.Cancel;
           }
 
@@ -187,13 +212,14 @@ namespace Vectorize
         }
       }
 
-      // 22-Oct-2020 Dale Fugier, group curves
+      // Group curves
       var attributes = doc.CreateDefaultAttributes();
       attributes.AddToGroup(doc.Groups.Add());
       for (var i = 0; i < conduit.OutlineCurves.Count; i++)
         doc.Objects.AddCurve(conduit.OutlineCurves[i], attributes);
 
       conduit.Enabled = false;
+      Potrace.Clear();
       doc.Views.Redraw();
 
       // Set the Potrace settings to the plug -in settings file.
@@ -288,6 +314,23 @@ namespace Vectorize
       Settings.SetBool("curveoptimizing", Potrace.curveoptimizing);
       Settings.SetDouble("opttolerance", Potrace.opttolerance);
       Settings.SetDouble("Treshold", Potrace.Treshold);
+    }
+
+    /// <summary>
+    /// Convert a System.Drawing.Bitmap to a Eto.Drawing.Bitmap
+    /// </summary>
+    Eto.Drawing.Bitmap ConvertBitmapToEto(Bitmap bitmap)
+    {
+      if (null == bitmap)
+        return null;
+
+      using (var stream = new MemoryStream())
+      {
+        bitmap.Save(stream, ImageFormat.Png);
+        stream.Seek(0, SeekOrigin.Begin);
+        var eto_bitmap = new Eto.Drawing.Bitmap(stream);
+        return eto_bitmap;
+      }
     }
   }
 }
