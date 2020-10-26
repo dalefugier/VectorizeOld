@@ -172,6 +172,7 @@ namespace Vectorize
         m_allow_update_and_redraw = false;
         Potrace.RestoreDefaults();
         sld_threshold.Value = (int)(Potrace.Treshold * 100.0);
+        ns_threshold.Value = sld_threshold.Value;
         dd_turnpolicy.SelectedIndex = (int)Potrace.turnpolicy;
         ns_turdsize.Value = Potrace.turdsize;
         ns_alphamax.Value = Potrace.alphamax;

@@ -11,7 +11,7 @@ namespace Vectorize
   public class VectorizeConduit : DisplayConduit
   {
     private readonly List<List<Vectorize.Curve>> m_path_curves;
-    private readonly Bitmap m_bitmap;
+    private readonly Eto.Drawing.Bitmap m_bitmap;
     private readonly double m_scale;
     private readonly double m_tolerance;
     private readonly Color m_color;
@@ -20,7 +20,7 @@ namespace Vectorize
     /// <summary>
     /// Public constructor.
     /// </summary>
-    public VectorizeConduit(Bitmap bitmap, double scale, double tolerance, Color color)
+    public VectorizeConduit(Eto.Drawing.Bitmap bitmap, double scale, double tolerance, Color color)
     {
       m_path_curves = new List<List<Vectorize.Curve>>();
       m_bitmap = bitmap;
@@ -76,7 +76,7 @@ namespace Vectorize
     {
       Clear();
       Potrace.Clear();
-      Potrace.Potrace_Trace(m_bitmap, m_path_curves);
+      Potrace.Potrace_EtoTrace(m_bitmap, m_path_curves);
     }
 
     /// <summary>
