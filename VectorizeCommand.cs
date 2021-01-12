@@ -18,6 +18,12 @@ namespace Vectorize
   public class VectorizeCommand : Command
   {
     /// <summary>
+    /// Controls whether or not the generated output curves are selected
+    /// after they are added to the document.
+    /// </summary>
+    private readonly bool m_select_output = true;
+
+    /// <summary>
     /// Command.EnglishName override
     /// </summary>
     public override string EnglishName => "Vectorize";
@@ -91,7 +97,15 @@ namespace Vectorize
       var eto_bitmap = ConvertBitmapToEto(bitmap);
       if (null == eto_bitmap)
       {
-        RhinoApp.WriteLine("Unable to convert bitmap to Eto bitmap.");
+        RhinoApp.WriteLine("Unable to convert image to Eto bitmap.");
+        return Result.Failure;
+      }
+
+      // 12-Jan-2021 Dale Fugier
+      // This should prevent Eto.Drawing.BitmapData.GetPixels() from throwing an exception
+      if (!IsCompatibleBitmap(eto_bitmap))
+      {
+        RhinoApp.WriteLine("The image has an incompatible pixel format. Please select an image with 24 or 32 bits per pixel, or 8 bit indexed.");
         return Result.Failure;
       }
 
@@ -105,8 +119,10 @@ namespace Vectorize
       var conduit = new VectorizeConduit(
         eto_bitmap, 
         scale, 
-        doc.ModelAbsoluteTolerance, 
-        doc.Layers.CurrentLayer.Color
+        doc.ModelAbsoluteTolerance,
+        m_select_output 
+          ? Rhino.ApplicationSettings.AppearanceSettings.SelectedObjectColor 
+          : doc.Layers.CurrentLayer.Color
         ) 
       { 
         Enabled = true 
@@ -216,7 +232,15 @@ namespace Vectorize
       var attributes = doc.CreateDefaultAttributes();
       attributes.AddToGroup(doc.Groups.Add());
       for (var i = 0; i < conduit.OutlineCurves.Count; i++)
-        doc.Objects.AddCurve(conduit.OutlineCurves[i], attributes);
+      {
+        var rhobj_id = doc.Objects.AddCurve(conduit.OutlineCurves[i], attributes);
+        if (m_select_output)
+        {
+          var rhobj = doc.Objects.Find(rhobj_id);
+          if (null != rhobj)
+            rhobj.Select(true);
+        }
+      }
 
       conduit.Enabled = false;
       Potrace.Clear();
@@ -231,7 +255,7 @@ namespace Vectorize
     /// <summary>
     /// Get name of an image file.
     /// </summary>
-    protected string GetImageFileName(RunMode mode)
+    private string GetImageFileName(RunMode mode)
     {
       string path;
       if (mode == RunMode.Interactive)
@@ -286,7 +310,7 @@ namespace Vectorize
     /// <summary>
     /// Gets the Potrace settings from the plug-in settings file.
     /// </summary>
-    void GetPotraceSettings()
+    private void GetPotraceSettings()
     {
       Potrace.RestoreDefaults();
       if (Settings.TryGetInteger("turnpolicy", out var turnpolicy))
@@ -306,7 +330,7 @@ namespace Vectorize
     /// <summary>
     /// Sets the Potrace settings to the plug-in settings file.
     /// </summary>
-    void SetPotraceSettings()
+    private void SetPotraceSettings()
     {
       Settings.SetInteger("turnpolicy", (int) Potrace.turnpolicy);
       Settings.SetInteger("turdsize", Potrace.turdsize);
@@ -319,7 +343,7 @@ namespace Vectorize
     /// <summary>
     /// Convert a System.Drawing.Bitmap to a Eto.Drawing.Bitmap
     /// </summary>
-    Eto.Drawing.Bitmap ConvertBitmapToEto(Bitmap bitmap)
+    private Eto.Drawing.Bitmap ConvertBitmapToEto(Bitmap bitmap)
     {
       if (null == bitmap)
         return null;
@@ -332,5 +356,31 @@ namespace Vectorize
         return eto_bitmap;
       }
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="bitmap"></param>
+    /// <returns></returns>
+    private bool IsCompatibleBitmap(Eto.Drawing.Bitmap bitmap)
+    {
+      if (null == bitmap)
+        return false;
+
+      using (var bitmapData = bitmap.Lock())
+      {
+        if (bitmapData.BytesPerPixel == 4)
+          return true;
+
+        if (bitmapData.BytesPerPixel == 3)
+          return true;
+
+        if (bitmapData.Image is Eto.Drawing.IndexedBitmap bmp && bitmapData.BytesPerPixel == 1)
+          return true;
+      }
+
+      return false;
+    }
+
   }
 }

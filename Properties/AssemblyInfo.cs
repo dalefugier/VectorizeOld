@@ -8,7 +8,7 @@ using Rhino.PlugIns;
 [assembly: PlugInDescription(DescriptionType.Phone, "206-545-6877")]
 [assembly: PlugInDescription(DescriptionType.Fax, "206-545-7321")]
 [assembly: PlugInDescription(DescriptionType.Organization, "Robert McNeel & Associates")]
-[assembly: PlugInDescription(DescriptionType.UpdateUrl, "https://github.com/dalefugier/Vectorize")]
+[assembly: PlugInDescription(DescriptionType.UpdateUrl, "https://www.food4rhino.com/app/vectorize")]
 [assembly: PlugInDescription(DescriptionType.WebSite, "http://www.rhino3d.com/")]
 [assembly: PlugInDescription(DescriptionType.Icon, "Vectorize.Resources.Vectorize.ico")]
 
@@ -17,7 +17,7 @@ using Rhino.PlugIns;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Robert McNeel & Associates")]
 [assembly: AssemblyProduct("Vectorize")]
-[assembly: AssemblyCopyright("Copyright © 2020, Robert McNeel & Associates")]
+[assembly: AssemblyCopyright("© 2021 Robert McNeel & Associates. All rights reserved.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
