@@ -32,6 +32,12 @@ git clone https://github.com/dalefugier/Vectorize
 
 ## License
 
-This source code is licensed under the [MIT License](https://github.com/dalefugier/Vectorize/blob/master/LICENSE).
+Copyright (C) 2020-2021 Dale Fugier
 
-[CsPotrace](https://github.com/dalefugier/Vectorize/blob/main/CsPotrace.cs) has its own separate license agreement.
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA. See also http://www.gnu.org/.
+
+See the file [LICENSE](https://github.com/dalefugier/Vectorize/blob/master/LICENSE) for details.
