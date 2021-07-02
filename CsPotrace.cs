@@ -631,18 +631,20 @@ namespace Vectorize
     }
 
     // 26-Oct-2020 Dale Fugier
+    //  2-Jul-2021 Dale Fugier
     static void ConvertEtoBitmap(Eto.Drawing.Bitmap bitmap)
     {
       var result = new byte[bitmap.Width * bitmap.Height];
       using (var bitmapData = bitmap.Lock())
       {
-        var argbData = bitmapData.GetPixels().ToArray();
-        for (var i = 0; i < argbData.Length; i++)
+        var i = 0;
+        foreach (var argbData in bitmapData.GetPixels())
         {
-          if (argbData[i].Rb + argbData[i].Gb + argbData[i].Bb < Treshold * 255 * 3)
+          if (argbData.Rb + argbData.Gb + argbData.Bb < Treshold * 255 * 3)
             result[i] = 1;
           else
             result[i] = 0;
+          i++;
         }
       }
 
