@@ -46,8 +46,9 @@ namespace Vectorize
         MaxValue = 100.0,
         DecimalPlaces = 0,
         Increment = 1.0,
-        ToolTip = "Weighted RGB color evaluation threshold.",
-        Value = (int)(Potrace.Treshold * 100.0), Width = 45
+        ToolTip = "Weighted RGB color evaluation threshold",
+        Value = (int)(Potrace.Treshold * 100.0),
+        Width = 45
       };
 
       var sld_threshold = new Slider
@@ -85,7 +86,7 @@ namespace Vectorize
 
       var dd_turnpolicy = new DropDown
       {
-        ToolTip = "Algorithm used to resolve ambiguities in path decomposition."
+        ToolTip = "Algorithm used to resolve ambiguities in path decomposition"
       };
       foreach (var str in Enum.GetNames(typeof(TurnPolicy)))
         dd_turnpolicy.Items.Add(str);
@@ -99,15 +100,15 @@ namespace Vectorize
         }
       };
 
-      var ns_turdsize = new NumericUpDownWithUnitParsing 
-      { 
-        ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging, 
-        MinValue = 1.0, 
-        MaxValue = 100.0, 
-        DecimalPlaces = 0, 
+      var ns_turdsize = new NumericUpDownWithUnitParsing
+      {
+        ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging,
+        MinValue = 1.0,
+        MaxValue = 100.0,
+        DecimalPlaces = 0,
         Increment = 1.0,
-        ToolTip = "Filter speckles of up to this size in pixels.",
-        Value = Potrace.turdsize 
+        ToolTip = "Filter speckles of up to this size in pixels",
+        Value = Potrace.turdsize
       };
       ns_turdsize.ValueChanged += (sender, args) =>
       {
@@ -115,15 +116,15 @@ namespace Vectorize
         UpdateAndRedraw();
       };
 
-      var ns_alphamax = new NumericUpDownWithUnitParsing 
-      { 
-        ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging, 
-        MinValue = 0.0, 
-        MaxValue = 100.0, 
-        DecimalPlaces = 0, 
+      var ns_alphamax = new NumericUpDownWithUnitParsing
+      {
+        ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging,
+        MinValue = 0.0,
+        MaxValue = 100.0,
+        DecimalPlaces = 0,
         Increment = 1.0,
-        ToolTip = "Corner rounding threshold.",
-        Value = Potrace.alphamax 
+        ToolTip = "Corner rounding threshold",
+        Value = Potrace.alphamax
       };
       ns_alphamax.ValueChanged += (sender, args) =>
       {
@@ -131,23 +132,35 @@ namespace Vectorize
         UpdateAndRedraw();
       };
 
-      var chk_curveoptimizing = new CheckBox 
-      { 
+      var chk_includeborder = new CheckBox
+      {
         ThreeState = false,
-        ToolTip = "Optimize of Bézier segments by a single segment when possible.",
-        Checked = Potrace.curveoptimizing 
+        ToolTip = "Include border rectangle",
+        Checked = m_conduit.IncludeBorder
+      };
+      chk_includeborder.CheckedChanged += (sender, args) =>
+      {
+        m_conduit.IncludeBorder = chk_includeborder.Checked.Value;
+        UpdateAndRedraw();
       };
 
-      var ns_opttolerance = new NumericUpDownWithUnitParsing 
-      { 
-        ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging, 
-        MinValue = 0.1, 
-        MaxValue = 1.0, 
-        DecimalPlaces = 1, 
+      var chk_curveoptimizing = new CheckBox
+      {
+        ThreeState = false,
+        ToolTip = "Optimize of Bézier segments by a single segment when possible",
+        Checked = Potrace.curveoptimizing
+      };
+
+      var ns_opttolerance = new NumericUpDownWithUnitParsing
+      {
+        ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging,
+        MinValue = 0.1,
+        MaxValue = 1.0,
+        DecimalPlaces = 1,
         Increment = 0.1,
         Enabled = Potrace.curveoptimizing,
-        ToolTip = "Tolerance used to optimize Bézier segments.",
-        Value = Potrace.opttolerance 
+        ToolTip = "Tolerance used to optimize Bézier segments",
+        Value = Potrace.opttolerance
       };
 
       chk_curveoptimizing.CheckedChanged += (sender, args) =>
@@ -163,9 +176,9 @@ namespace Vectorize
         UpdateAndRedraw();
       };
 
-      var btn_reset = new Button 
-      { 
-        Text = "Restore Defaults" 
+      var btn_reset = new Button
+      {
+        Text = "Restore Defaults"
       };
       btn_reset.Click += (sender, args) =>
       {
@@ -176,6 +189,8 @@ namespace Vectorize
         dd_turnpolicy.SelectedIndex = (int)Potrace.turnpolicy;
         ns_turdsize.Value = Potrace.turdsize;
         ns_alphamax.Value = Potrace.alphamax;
+        chk_includeborder.Checked = true;
+        m_conduit.IncludeBorder = chk_includeborder.Checked.Value;
         chk_curveoptimizing.Checked = Potrace.curveoptimizing;
         ns_opttolerance.Value = Potrace.opttolerance;
         m_allow_update_and_redraw = true;
@@ -189,23 +204,27 @@ namespace Vectorize
       var layout = new RhinoDialogTableLayout(false) { Spacing = new Eto.Drawing.Size(10, 8) };
       layout.Rows.Add(new TableRow(new TableCell(new LabelSeparator { Text = "Vectorization options" }, true)));
 
-      var panel0 = new Panel {MinimumSize = minimum_size, Content = new Label() {Text = "Threshold"}};
+      var panel0 = new Panel { MinimumSize = minimum_size, Content = new Label() { Text = "Threshold" } };
       var table0 = new TableLayout { Padding = new Eto.Drawing.Padding(8, 0, 0, 0) };
-      table0.Rows.Add(new TableRow(new TableCell(panel0),new TableCell(sld_threshold,true), new TableCell(ns_threshold)));
+      table0.Rows.Add(new TableRow(new TableCell(panel0), new TableCell(sld_threshold, true), new TableCell(ns_threshold)));
       layout.Rows.Add(table0);
 
-      var panel1 = new Panel {MinimumSize = minimum_size, Content = new Label() {Text = "Turn policy"}};
-      var table1 = new TableLayout { Padding = new Eto.Drawing.Padding(8, 0, 0, 0) , Spacing = new Size(10,8)};
+      var panel1 = new Panel { MinimumSize = minimum_size, Content = new Label() { Text = "Turn policy" } };
+      var panel2 = new Panel { MinimumSize = minimum_size, Content = new Label() { Text = "Include border" } };
+
+      var table1 = new TableLayout { Padding = new Eto.Drawing.Padding(8, 0, 0, 0), Spacing = new Size(10, 8) };
       table1.Rows.Add(new TableRow(new TableCell(panel1), new TableCell(dd_turnpolicy)));
       table1.Rows.Add(new TableRow(new TableCell(new Label() { Text = "Filter size" }), new TableCell(ns_turdsize)));
       table1.Rows.Add(new TableRow(new TableCell(new Label() { Text = "Corner rounding" }), new TableCell(ns_alphamax)));
+      table1.Rows.Add(new TableRow(new TableCell(panel2), new TableCell(chk_includeborder)));
+
       layout.Rows.Add(table1);
 
       layout.Rows.Add(new TableRow(new TableCell(new LabelSeparator { Text = "Curve optimization" }, true)));
 
-      var panel2 = new Panel {MinimumSize = minimum_size, Content = new Label() {Text = "Optimizing"}};
+      var panel3 = new Panel { MinimumSize = minimum_size, Content = new Label() { Text = "Optimizing" } };
       var table2 = new TableLayout { Padding = new Eto.Drawing.Padding(8, 0, 0, 0), Spacing = new Size(10, 8) };
-      table2.Rows.Add(new TableRow(new TableCell(panel2), new TableCell(chk_curveoptimizing)));
+      table2.Rows.Add(new TableRow(new TableCell(panel3), new TableCell(chk_curveoptimizing)));
       table2.Rows.Add(new TableRow(new TableCell(new Label() { Text = "Tolerance" }), new TableCell(ns_opttolerance)));
       table2.Rows.Add(null);
       table2.Rows.Add(new TableRow(new TableCell(new Label() { Text = "" }), new TableCell(btn_reset)));

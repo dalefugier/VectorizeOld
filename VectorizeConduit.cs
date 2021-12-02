@@ -2,6 +2,7 @@
 using Rhino.Geometry;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 
 namespace Vectorize
 {
@@ -28,14 +29,19 @@ namespace Vectorize
       m_tolerance = tolerance;
       m_color = color;
       m_bbox = BoundingBox.Unset;
-      OutlineCurves = new List<PolyCurve>();
+      OutlineCurves = new List<Rhino.Geometry.Curve>();
     }
+
+    /// <summary>
+    /// Include a border rectangle.
+    /// </summary>
+    public bool IncludeBorder { get; set; } = true;
 
     /// <summary>
     /// The list of outline curves created from the path curves.
     /// These curve may end up in the Rhino document.
     /// </summary>
-    public List<PolyCurve> OutlineCurves
+    public List<Rhino.Geometry.Curve> OutlineCurves
     {
       get;
       private set;
@@ -66,7 +72,11 @@ namespace Vectorize
     protected override void DrawOverlay(DrawEventArgs e)
     {
       for (var i = 0; i < OutlineCurves.Count; i++)
+      {
+        if (i == 0 && !IncludeBorder)
+          continue;
         e.Display.DrawCurve(OutlineCurves[i], m_color);
+      }
     }
 
     /// <summary>
@@ -97,41 +107,71 @@ namespace Vectorize
     {
       OutlineCurves.Clear();
 
-      for (var i = 0; i < m_path_curves.Count; i++)
+      // The first curve is always the border curve
+      var corners = new Point3d[] {
+        Point3d.Origin,
+        new Point3d(m_bitmap.Width, 0.0, 0.0),
+        new Point3d(m_bitmap.Width, m_bitmap.Height, 0.0),
+        new Point3d(0.0, m_bitmap.Height, 0.0),
+        Point3d.Origin
+        };
+      var border = new PolylineCurve(corners);
+      OutlineCurves.Add(border);
+
+      foreach (var path_curve in m_path_curves)
       {
-        var curve_path = m_path_curves[i];
-        if (0 == curve_path.Count)
-          continue;
-
-        var point1 = curve_path[0].A.ToPoint3d();
-        var point2 = curve_path[0].A.ToPoint3d();
-
-        var polycurve = new PolyCurve();
-
-        for (var j = 0; j < curve_path.Count; j++)
+        switch (GetPathCurveType(path_curve))
         {
-          var curve = curve_path[j];
-          if (curve.Kind == CurveKind.Line)
-          {
-            if (j > 0)
-              polycurve.Append(new LineCurve(point1, curve.A.ToPoint3d()));
-            polycurve.Append(curve.ToLineCurve());
-          }
-          else
-          {
-            polycurve.Append(curve.ToNurbsCurve());
-          }
-          point1 = curve.B.ToPoint3d();
-        }
-        
-        if (!polycurve.MakeClosed(0.01))
-        {
-          polycurve.Append(new LineCurve(point1, point2));
-        }
+          case PathCurveType.LineCurve:
+            {
+              var curve = path_curve[0].ToLineCurve();
+              if (curve.IsValid && !curve.IsShort(m_tolerance))
+                OutlineCurves.Add(curve);
+            }
+            break;
 
-        polycurve.RemoveShortSegments(m_tolerance);
+          case PathCurveType.BezierCurve:
+            {
+              var curve = path_curve[0].ToNurbsCurve();
+              if (curve.IsValid && !curve.IsShort(m_tolerance))
+                OutlineCurves.Add(curve);
+            }
+            break;
 
-        OutlineCurves.Add(polycurve);
+          case PathCurveType.PolylineCurve:
+            {
+              var points = new List<Point3d>();
+              for (var i = 0; i < path_curve.Count; i++)
+              {
+                if (i == 0)
+                  points.Add(path_curve[i].A.ToPoint3d());
+                points.Add(path_curve[i].B.ToPoint3d());
+              }
+              var curve = new PolylineCurve(points);
+              curve.MakeClosed(m_tolerance);
+              curve.RemoveShortSegments(m_tolerance);
+              if (curve.IsValid && !curve.IsShort(m_tolerance))
+                OutlineCurves.Add(curve);
+            }
+            break;
+
+          case PathCurveType.PolyCurve:
+            {
+              var curve = new PolyCurve();
+              foreach (var path in path_curve)
+              {
+                if (path.Kind == CurveKind.Line)
+                  curve.Append(path.ToLineCurve());
+                else
+                  curve.Append(path.ToNurbsCurve());
+              }
+              curve.MakeClosed(m_tolerance);
+              curve.RemoveShortSegments(m_tolerance);
+              if (curve.IsValid && !curve.IsShort(m_tolerance))
+                OutlineCurves.Add(curve);
+            }
+            break;
+        }
       }
 
       if (OutlineCurves.Count > 0)
@@ -160,5 +200,40 @@ namespace Vectorize
       return OutlineCurves.Count;
     }
 
+    private enum PathCurveType
+    {
+      None,
+      LineCurve,
+      BezierCurve,
+      PolylineCurve,
+      PolyCurve
+    }
+
+    private PathCurveType GetPathCurveType(IEnumerable<Vectorize.Curve> pathCurves)
+    {
+      if (null == pathCurves || 0 == pathCurves.Count())
+        return PathCurveType.None;
+
+      if (1 == pathCurves.Count())
+      {
+        return (pathCurves.First().Kind == CurveKind.Line)
+          ? PathCurveType.LineCurve
+          : PathCurveType.BezierCurve;
+      }
+
+      var bPolyline = true;
+      foreach (var curve in pathCurves)
+      {
+        if (curve.Kind != CurveKind.Line)
+        {
+          bPolyline = false;
+          break;
+        }
+      }
+
+      return bPolyline
+        ? PathCurveType.PolylineCurve
+        : PathCurveType.PolyCurve;
+    }
   }
 }

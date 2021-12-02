@@ -24,6 +24,12 @@ namespace Vectorize
     private readonly bool m_select_output = true;
 
     /// <summary>
+    /// 30-Nov-2021 Dale Fugier
+    /// Include a rectangular border curve around the output geometry.
+    /// </summary>
+    private bool m_include_border = true;
+
+    /// <summary>
     /// Command.EnglishName override
     /// </summary>
     public override string EnglishName => "Vectorize";
@@ -117,15 +123,16 @@ namespace Vectorize
 
       // Create the conduit, which does most of the work
       var conduit = new VectorizeConduit(
-        eto_bitmap, 
-        scale, 
+        eto_bitmap,
+        scale,
         doc.ModelAbsoluteTolerance,
-        m_select_output 
-          ? Rhino.ApplicationSettings.AppearanceSettings.SelectedObjectColor 
+        m_select_output
+          ? Rhino.ApplicationSettings.AppearanceSettings.SelectedObjectColor
           : doc.Layers.CurrentLayer.Color
-        ) 
-      { 
-        Enabled = true 
+        )
+      {
+        Enabled = true,
+        IncludeBorder = m_include_border
       };
 
       if (mode == RunMode.Interactive)
@@ -142,6 +149,7 @@ namespace Vectorize
           doc.Views.Redraw();
           return Result.Cancel;
         }
+        m_include_border = conduit.IncludeBorder;
       }
       else
       {
@@ -151,17 +159,30 @@ namespace Vectorize
         go.AcceptNothing(true);
         while (true)
         {
+          conduit.IncludeBorder = m_include_border;
           conduit.TraceBitmap();
           doc.Views.Redraw();
 
           go.ClearCommandOptions();
 
+          // Threshold
+          var threshold_opt = new OptionDouble(Potrace.Treshold, 0.0, 100.0);
+          var threshold_idx = go.AddOptionDouble("Threshold", ref threshold_opt, "Threshold");
+
+          // TurnPolicy
+          var turnpolicy_idx = go.AddOptionEnumList("TurnPolicy", Potrace.turnpolicy);
+
           // IgnoreArea
           var turdsize_opt = new OptionInteger(Potrace.turdsize, 2, 100);
           var turdsize_idx = go.AddOptionInteger("FilterSize", ref turdsize_opt, "Filter speckles of up to this size in pixels");
 
-          // TurnPolicy
-          var turnpolicy_idx = go.AddOptionEnumList("TurnPolicy", Potrace.turnpolicy);
+          // CornerThreshold
+          var alphamax_opt = new OptionDouble(Potrace.alphamax, 0.0, 100.0);
+          var alphamax_idx = go.AddOptionDouble("CornerRounding", ref alphamax_opt, "Corner rounding threshold");
+
+          // IncludeBorder
+          var include_border_opt = new OptionToggle(m_include_border, "No", "Yes");
+          var include_border_idx = go.AddOptionToggle("IncludeBorder", ref include_border_opt);
 
           // Optimizing
           var curveoptimizing_opt = new OptionToggle(Potrace.curveoptimizing, "No", "Yes");
@@ -170,14 +191,6 @@ namespace Vectorize
           // Tolerance
           var opttolerance_opt = new OptionDouble(Potrace.opttolerance, 0.0, 1.0);
           var opttolerance_idx = go.AddOptionDouble("Tolerance", ref opttolerance_opt, "Optimizing tolerance");
-
-          // CornerThreshold
-          var alphamax_opt = new OptionDouble(Potrace.alphamax, 0.0, 100.0);
-          var alphamax_idx = go.AddOptionDouble("CornerRounding", ref alphamax_opt, "Corner rounding threshold");
-
-          // Threshold
-          var threshold_opt = new OptionDouble(Potrace.Treshold, 0.0, 100.0);
-          var threshold_idx = go.AddOptionDouble("Threshold", ref threshold_opt, "Threshold");
 
           // RestoreDefaults
           var defaults_idx = go.AddOption("RestoreDefaults");
@@ -210,8 +223,14 @@ namespace Vectorize
               if (threshold_idx == option.Index)
                 Potrace.Treshold = threshold_opt.CurrentValue;
 
+              if (include_border_idx == option.Index)
+                m_include_border = include_border_opt.CurrentValue;
+
               if (defaults_idx == option.Index)
+              {
                 Potrace.RestoreDefaults();
+                m_include_border = true;
+              }
             }
             continue;
           }
@@ -233,6 +252,8 @@ namespace Vectorize
       attributes.AddToGroup(doc.Groups.Add());
       for (var i = 0; i < conduit.OutlineCurves.Count; i++)
       {
+        if (i == 0 && !m_include_border) // skip border
+          continue;
         var rhobj_id = doc.Objects.AddCurve(conduit.OutlineCurves[i], attributes);
         if (m_select_output)
         {
@@ -246,7 +267,7 @@ namespace Vectorize
       Potrace.Clear();
       doc.Views.Redraw();
 
-      // Set the Potrace settings to the plug -in settings file.
+      // Set the Potrace settings to the plug-in settings file.
       SetPotraceSettings();
 
       return Result.Success;
@@ -325,6 +346,8 @@ namespace Vectorize
         Potrace.opttolerance = opttolerance;
       if (Settings.TryGetDouble("Treshold", out var Treshold))
         Potrace.Treshold = Treshold;
+      if (Settings.TryGetBool("IncludeBorder", out var include_border))
+        m_include_border = include_border;
     }
 
     /// <summary>
@@ -338,6 +361,7 @@ namespace Vectorize
       Settings.SetBool("curveoptimizing", Potrace.curveoptimizing);
       Settings.SetDouble("opttolerance", Potrace.opttolerance);
       Settings.SetDouble("Treshold", Potrace.Treshold);
+      Settings.SetBool("IncludeBorder", m_include_border);
     }
 
     /// <summary>
