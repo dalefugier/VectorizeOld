@@ -107,7 +107,7 @@ namespace Vectorize
     {
       OutlineCurves.Clear();
 
-      // The first curve is always the border curve
+      // The first curve is always the border curve no matter what
       var corners = new Point3d[] {
         Point3d.Origin,
         new Point3d(m_bitmap.Width, 0.0, 0.0),
@@ -125,7 +125,7 @@ namespace Vectorize
           case PathCurveType.LineCurve:
             {
               var curve = path_curve[0].ToLineCurve();
-              if (curve.IsValid && !curve.IsShort(m_tolerance))
+              if (null != curve && curve.IsValid && !curve.IsShort(m_tolerance))
                 OutlineCurves.Add(curve);
             }
             break;
@@ -133,7 +133,7 @@ namespace Vectorize
           case PathCurveType.BezierCurve:
             {
               var curve = path_curve[0].ToNurbsCurve();
-              if (curve.IsValid && !curve.IsShort(m_tolerance))
+              if (null != curve && curve.IsValid && !curve.IsShort(m_tolerance))
                 OutlineCurves.Add(curve);
             }
             break;
@@ -161,9 +161,17 @@ namespace Vectorize
               foreach (var path in path_curve)
               {
                 if (path.Kind == CurveKind.Line)
-                  curve.Append(path.ToLineCurve());
+                {
+                  var c = path.ToLineCurve();
+                  if (null != c && c.IsValid && !c.IsShort(m_tolerance))
+                    curve.Append(c);
+                }
                 else
-                  curve.Append(path.ToNurbsCurve());
+                {
+                  var c = path.ToNurbsCurve();
+                  if (null != c && c.IsValid && !c.IsShort(m_tolerance))
+                    curve.Append(c);
+                }
               }
               curve.MakeClosed(m_tolerance);
               curve.RemoveShortSegments(m_tolerance);
@@ -176,9 +184,10 @@ namespace Vectorize
 
       if (OutlineCurves.Count > 0)
       {
-        m_bbox = new BoundingBox();
-        for (var i = 0; i < OutlineCurves.Count; i++)
-          m_bbox.Union(OutlineCurves[i].GetBoundingBox(true));
+        // Just use the border curve
+        m_bbox = OutlineCurves[0].GetBoundingBox(true);
+        //for (var i = 0; i < OutlineCurves.Count; i++)
+        //  m_bbox.Union(OutlineCurves[i].GetBoundingBox(true));
       }
 
       // The origin of the bitmap coordinate system is at the top-left corner of the bitmap. 
