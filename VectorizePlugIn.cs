@@ -1,4 +1,5 @@
-﻿using Rhino.PlugIns;
+﻿using Rhino;
+using Rhino.PlugIns;
 
 namespace Vectorize
 {
@@ -16,6 +17,12 @@ namespace Vectorize
 
     protected override LoadReturnCode OnLoad(ref string errorMessage)
     {
+      var ver = RhinoApp.ExeVersion;
+      if (ver > 7)
+      {
+        RhinoApp.WriteLine("Vectorize is included with Rhino {0}.", ver);
+        return LoadReturnCode.ErrorNoDialog;
+      }
       return LoadReturnCode.Success;
     }
   }

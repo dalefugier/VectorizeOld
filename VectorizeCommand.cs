@@ -111,8 +111,16 @@ namespace Vectorize
       // This should prevent Eto.Drawing.BitmapData.GetPixels() from throwing an exception
       if (!IsCompatibleBitmap(eto_bitmap))
       {
-        RhinoApp.WriteLine("The image has an incompatible pixel format. Please select an image with 24 or 32 bits per pixel, or 8 bit indexed.");
-        return Result.Failure;
+        var temp_bitmap = MakeCompatibleBitmap(eto_bitmap);
+        if (null == temp_bitmap)
+        {
+          RhinoApp.WriteLine(Localization.LocalizeString("The image has an incompatible pixel format. Please select an image with 24 or 32 bits per pixel, or 8 bit indexed.", 2290));
+          return Result.Failure;
+        }
+        else
+        {
+          eto_bitmap = temp_bitmap;
+        }
       }
 
       // This bitmap is not needed anymore, so dispose of it
@@ -399,11 +407,28 @@ namespace Vectorize
         if (bitmapData.BytesPerPixel == 3)
           return true;
 
-        if (bitmapData.Image is Eto.Drawing.IndexedBitmap bmp && bitmapData.BytesPerPixel == 1)
+        if (bitmapData.Image is Eto.Drawing.IndexedBitmap && bitmapData.BytesPerPixel == 1)
           return true;
       }
 
       return false;
+    }
+
+    /// <summary>
+    /// Makes an Eto BitmapData.GetPixel-compatible bitmap
+    /// </summary>
+    private Eto.Drawing.Bitmap MakeCompatibleBitmap(Eto.Drawing.Bitmap bitmap)
+    {
+      if (null == bitmap)
+        return null;
+
+      var size = new Eto.Drawing.Size(bitmap.Width, bitmap.Height);
+      var bmp = new Eto.Drawing.Bitmap(size, Eto.Drawing.PixelFormat.Format24bppRgb);
+      using (var graphics = new Eto.Drawing.Graphics(bmp))
+      {
+        graphics.DrawImage(bitmap, 0, 0);
+      }
+      return bmp;
     }
 
   }

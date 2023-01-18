@@ -17,7 +17,7 @@ using Rhino.PlugIns;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Dale Fugier")]
 [assembly: AssemblyProduct("Vectorize")]
-[assembly: AssemblyCopyright("Copyright © 2020-2021, Dale Fugier")]
+[assembly: AssemblyCopyright("Copyright © 2020-2023, Dale Fugier")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
