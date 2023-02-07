@@ -1,9 +1,9 @@
-﻿using System;
-using Eto.Drawing;
+﻿using Eto.Drawing;
 using Eto.Forms;
 using Rhino;
 using Rhino.UI.Controls;
 using Rhino.UI.Forms;
+using System;
 
 namespace Vectorize
 {
@@ -103,7 +103,7 @@ namespace Vectorize
       var ns_turdsize = new NumericUpDownWithUnitParsing
       {
         ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging,
-        MinValue = 1.0,
+        MinValue = 0.0,
         MaxValue = 100.0,
         DecimalPlaces = 0,
         Increment = 1.0,
@@ -120,9 +120,9 @@ namespace Vectorize
       {
         ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging,
         MinValue = 0.0,
-        MaxValue = 100.0,
-        DecimalPlaces = 0,
-        Increment = 1.0,
+        MaxValue = 4 / 3,
+        DecimalPlaces = 1,
+        Increment = 0.1,
         ToolTip = "Corner rounding threshold",
         Value = Potrace.alphamax
       };
@@ -154,9 +154,9 @@ namespace Vectorize
       var ns_opttolerance = new NumericUpDownWithUnitParsing
       {
         ValueUpdateMode = NumericUpDownWithUnitParsingUpdateMode.WhenDoneChanging,
-        MinValue = 0.1,
+        MinValue = 0.0,
         MaxValue = 1.0,
-        DecimalPlaces = 1,
+        DecimalPlaces = m_doc.ModelDistanceDisplayPrecision,
         Increment = 0.1,
         Enabled = Potrace.curveoptimizing,
         ToolTip = "Tolerance used to optimize Bézier segments",

@@ -1,14 +1,14 @@
-﻿using System;
+﻿using Rhino;
+using Rhino.Commands;
+using Rhino.Input;
+using Rhino.Input.Custom;
+using Rhino.UI;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Rhino;
-using Rhino.Commands;
-using Rhino.Input;
-using Rhino.Input.Custom;
-using Rhino.UI;
 
 namespace Vectorize
 {
@@ -181,11 +181,11 @@ namespace Vectorize
           var turnpolicy_idx = go.AddOptionEnumList("TurnPolicy", Potrace.turnpolicy);
 
           // IgnoreArea
-          var turdsize_opt = new OptionInteger(Potrace.turdsize, 2, 100);
+          var turdsize_opt = new OptionInteger(Potrace.turdsize, 0, 100);
           var turdsize_idx = go.AddOptionInteger("FilterSize", ref turdsize_opt, "Filter speckles of up to this size in pixels");
 
           // CornerThreshold
-          var alphamax_opt = new OptionDouble(Potrace.alphamax, 0.0, 100.0);
+          var alphamax_opt = new OptionDouble(Potrace.alphamax, 0.0, 4 / 3);
           var alphamax_idx = go.AddOptionDouble("CornerRounding", ref alphamax_opt, "Corner rounding threshold");
 
           // IncludeBorder
@@ -343,7 +343,7 @@ namespace Vectorize
     {
       Potrace.RestoreDefaults();
       if (Settings.TryGetInteger("turnpolicy", out var turnpolicy))
-        Potrace.turnpolicy = (TurnPolicy) turnpolicy;
+        Potrace.turnpolicy = (TurnPolicy)turnpolicy;
       if (Settings.TryGetInteger("turdsize", out var turdsize))
         Potrace.turdsize = turdsize;
       if (Settings.TryGetDouble("alphamax", out var alphamax))
@@ -363,7 +363,7 @@ namespace Vectorize
     /// </summary>
     private void SetPotraceSettings()
     {
-      Settings.SetInteger("turnpolicy", (int) Potrace.turnpolicy);
+      Settings.SetInteger("turnpolicy", (int)Potrace.turnpolicy);
       Settings.SetInteger("turdsize", Potrace.turdsize);
       Settings.SetDouble("alphamax", Potrace.alphamax);
       Settings.SetBool("curveoptimizing", Potrace.curveoptimizing);
